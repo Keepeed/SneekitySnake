@@ -1,0 +1,334 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <conio.h>
+#include <Windows.h>
+#include <time.h>
+
+// Estrutura utilizada :
+typedef struct snakeBody{
+
+int i,j,food;
+
+struct snakeBody *back, *front;
+
+}snakeBody;
+
+/* Criação do tabuleiro display e corpo da cobrinha*/
+int mat[25][50] = {0};
+
+snakeBody *head, *tail;
+
+int fi,fj, fc = 0;
+float sleeptime=100; // taxa de atualização, frequência na qual a tela é reimpressa, também controla a velocidade do jogo
+char movement;
+
+void paint();
+
+void repaint(char);
+
+int main(){
+// Impressão da tela de inicio
+titlescreen();
+
+mat[4][4] = 2;
+//estabelecimento da condição de "Endgame" como falsa
+int y,endgame = 0,endLoop = 0;
+
+char c;
+/* Criação do corpo da Cobra. Note que o ponteiro de "cauda" não possui alocamento, pois ele apenas vai
+apontar para a parte do corpo da cobra que atualmente representa a cauda.*/
+snakeBody *body1, *body2;
+movement = 'd';//essa função faz com que a cobrinha inicie sempre andando para a direita.
+head = (snakeBody*)malloc(sizeof(snakeBody));
+body1 = (snakeBody*)malloc(sizeof(snakeBody));
+body2 = (snakeBody*)malloc(sizeof(snakeBody));
+/*A partir daqui é feito a distribuição do corpo da cobra no tabuleiro. Percebemos que a distribuição decrescente no inteiro j faz
+com que o corpo se alinhe em sequência*/
+head->i = 10;
+head->j = 10;
+head->food = 0;
+head->back = body1;
+head->front = NULL;
+body1->i = 10;
+body1->j = 9;
+body1->food = 0;
+body1->back = body2;
+body1->front = head;
+body2->i = 10;
+body2->j = 8;
+body2->food = 0;
+body2->back = NULL;
+body2->front = body1;
+tail = body2;
+paint();
+
+while(endgame == 0){ //laço que garante a continuidade do jogo enquanto a condicional "Endgame" não for cumprida
+
+if(kbhit()){ //o seguinte laço efetivamente reconhece os comandos do jogador
+
+c = getch();
+//se o jogador apertar a tecla ponto e virgula, o jogo acaba
+if(c == ';') endgame++;
+//se o jogador apertar uma das teclas direcionais, a função repaint será acionada, caso o movimento na direção contrária não esteja ativa.
+else if((c == 'w'&& movement != 's')||(c == 'a' && movement != 'd')||(c == 's' && movement != 'w')||(c == 'd'&& movement != 'a')) repaint(c);
+
+else continue;//caso nada seja feito, prossiga
+
+}
+
+else repaint(movement);//procede à fazer a repintura, por sua vez fazendo a cobra avançar na direção respectiva.
+
+if(!checkBody(head))endgame++;//verificação de colisão da cobra com o corpo.
+
+Sleep(sleeptime);//para variavel sleeptime, ver inicio do código.
+
+if(sleeptime>0)sleeptime=sleeptime-0.005;//linha responsável por fazer o jogo ficar gradativamente mais rápido
+
+}
+/*A partir daqui até o final da função main, o jogo computa que a condição "Endgame foi cumprida.*/
+printf("\n");
+
+for(y=0;y<51;y++){
+
+        printf("-");
+
+}
+
+    printf("\n  Game Over   \n  Final Score: %i \n",fc);//fc corresponde ao número de frutas que a cobrinha comeu.
+
+    for(y=0;y<51;y++){
+
+        printf("-");
+
+}
+
+    return 0;
+
+}
+
+void paint(){ //A função paint é responsável por efetivamente imprimir o tabuleiro e o corpo da cobra.
+
+int i,j,x;
+
+snakeBody *ptr;//ponteiro auxiliar para acompanhar o corpo da cobra na impressão.
+
+ptr = head;//o ponteiro aponta, evidentemente, para a cabeça da cobra.
+//a partir daqui, o ponteiro percorre o corpo da cobra até o final.
+while(ptr != NULL){
+
+if(ptr->food == 1) mat[ptr->i][ptr->j] = 3;// verifica se o pedaço especifico da cobra está abrigando uma fruta, se estiver, a parte do corpo terá uma simbologia diferente.
+
+else mat[ptr->i][ptr->j] = 1;//caso contrário, a parte terá a simbologia padronizada para o corpo da cobra.
+
+ptr = ptr->back;
+
+}
+
+system("cls");//limpa aquilo que já estava impresso
+
+printf("Sneekity Snake 2, electric bogaloo!!\nScore: %i\nSpeed: %f.4\n", fc,100-sleeptime);
+
+for(x=0;x<52;x++){
+
+        printf("H");//borda superior do tabuleiro de jogo
+
+    }
+
+    printf("\n");
+
+for(i = 0; i < 25; i++){
+
+printf("H");//borda esquerda do tabuleiro de jogo
+
+for(j = 0; j < 50; j++){
+
+if(mat[i][j] == 0)
+
+printf(" ");//espaço vazio
+
+else if(mat[i][j] == 1)
+
+printf("O");//corpo da cobra
+
+else if(mat[i][j] == 2)
+
+printf("X");//fruta
+
+else if(mat[i][j] == 3)
+
+printf("@");//corpo da cobra quando abriga uma fruta
+
+}
+
+printf("H\n");//borda direita do tabuleiro de jogo
+
+}
+
+    for(x=0;x<52;x++){
+
+        printf("H");//borda inferior do tabuleiro de jogo
+
+    }
+
+//printf("\n\nUse W,A,S,D, to move. Press ';' to exit.");
+
+}
+
+int checkBody(snakeBody *Head)//Verifica se houve colisão na cobra
+{
+
+    snakeBody *aux = Head->back;
+
+    while(aux != NULL)
+
+    {
+
+        if(aux->i == Head->i && aux->j == Head->j) return 0;
+
+        aux = aux->back;
+
+    }
+
+    return 1;
+
+}
+
+void repaint(char c){  //responsável pela reimpressão do tabuleiro, reatribuindo os valores do corpo da cobra
+
+snakeBody *ptr, *temp;//dois ponteiros, um auxiliar, e outro que se tornará um elemento
+
+ptr = tail;//o auxiliar referencia a cauda da cobra
+
+int tempi,tempj, i2,j2, flag=0;
+
+if(tail->food == 1){ //verifica se a comida "chegou" na cauda
+
+fc++;//contador de frutas de pontuação
+
+flag = 1;//flag serve para sinalizar o codigo de que o corpo terá uma nova cauda.
+
+temp = (snakeBody*)malloc(sizeof(snakeBody));//temporário se torna uma parte nova do corpo
+/*Zerando os valores de comida das partes do corpo, e realocando os ponteiros*/
+tail->food = 0;
+temp->i = tail->i;
+temp->j = tail->j;
+temp->food = 0;
+tail->food = 0;
+temp->front = tail;
+tail->back = temp;
+temp->back = NULL;
+
+}
+// esse laço efetivamente faz com que a cobra siga em frente
+while(ptr->front != NULL){
+mat[ptr->i][ptr->j] = 0;
+ptr->i = ptr->front->i;
+ptr->j = ptr->front->j;
+ptr->food = ptr->front->food;
+ptr->front->food = 0;
+ptr = ptr->front;
+}
+
+if(flag == 1) tail = temp;//o temporario se torna a nova cauda do corpo
+//a função switch abaixo é responsável pela troca de direções do corpo da cobra
+movement = c;
+switch(c){
+//troca de direção norte
+case 'w':
+
+    if(ptr->i < 1)
+
+                {
+
+                    ptr->i = 25;//ao atravessar a borda, a cobra aparece no lado oposto do tabuleiro
+
+                }
+
+ptr->i -= 1;
+
+break;
+//troca de direção oeste
+case 'a':
+
+    if(ptr->j <= 0)
+
+                {
+
+                    ptr->j = 50;//ao atravessar a borda, a cobra aparece no lado oposto do tabuleiro
+
+                }
+
+ptr->j -= 1;
+
+break;
+//troca de direção sul
+case 's':
+
+    if(c == 'w') break;
+
+    if(ptr->i > 23)
+
+                {
+
+                    ptr->i = -1;//ao atravessar a borda, a cobra aparece no lado oposto do tabuleiro
+
+                }
+
+ptr->i += 1;
+
+break;
+//troca de direção leste
+case 'd':
+
+    if(ptr->j > 48)
+
+                {
+
+                    ptr->j = -1;//ao atravessar a borda, a cobra aparece no lado oposto do tabuleiro
+
+                }
+
+ptr->j += 1;
+
+break;
+
+}
+//O trecho de código abaixo é responsável pela randomização de distribuição da fruta no tabuleiro.
+if(mat[ptr->i][ptr->j] == 2) {
+
+ptr->food = 1;
+
+while(1){
+
+srand(time(NULL));
+
+fi = rand() % 25;
+
+fj = rand() % 50;
+
+if(mat[fi][fj] == 0){
+
+mat[fi][fj] = 2;
+
+break;
+
+}
+
+}
+
+}
+
+paint();
+
+}
+
+void titlescreen(){ //função responsável pela impressão da tela de inicio
+    printf("\t ____________________________________________\n");
+    printf("\t ____________________________________________\n");
+    printf("\n\t     SNEEKITY SNAKE 2 : ELECTRIC BOOGALOO    \n");
+    printf("\t ____________________________________________\n");
+    printf("\t ____________________________________________\n");
+
+    printf("\n\n\t\t Press any button to continue..");
+    getch();
+}
